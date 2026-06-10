@@ -680,6 +680,31 @@ let allMentorings = [];
 let currentFilter = 'all';
 const AVATARS = ['avatar-blue','avatar-green','avatar-orange','avatar-purple'];
 
+async function deleteMentoring(id, btn) {
+  if (!confirm('정말 삭제하시겠어요?')) return;
+  btn.textContent = '삭제 중...';
+  btn.disabled = true;
+  const { error } = await _supabase.from('mentorings').delete().eq('id', id);
+  if (error) {
+    showToast('❌ 삭제 실패: ' + error.message, 'error');
+    btn.textContent = '🗑 내 멘토링 삭제';
+    btn.disabled = false;
+  } else {
+    showToast('🗑 삭제됐습니다.', 'default');
+    loadMentorings();
+  }
+}
+
+function goToContact(e, url) {
+  e.preventDefault();
+  if (!currentUser) {
+    showToast('💡 멘티 신청은 로그인 후 이용할 수 있습니다.', 'default');
+    openAuthModal();
+    return;
+  }
+  window.open(url, '_blank');
+}
+
 async function loadMentorings() {
   const grid = document.getElementById('cardGrid');
   grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--gray-400);font-size:14px">불러오는 중...</div>';
@@ -714,12 +739,13 @@ function renderCards(filter) {
         '<div class="card-mentor">' +
           '<div class="avatar ' + avatarClass + '">' + initial + '</div>' +
           '<div>' +
-            '<div class="mentor-info-name">' + (c.contact_link ? '<a href="' + c.contact_link + '" target="_blank" style="color:var(--blue);text-decoration:none;font-weight:700">연락하기 →</a>' : '연락처 없음') + '</div>' +
+            '<div class="mentor-info-name">' + (c.contact_link ? '<a href="#" onclick="goToContact(event,\''+c.contact_link+'\')" style="color:var(--blue);text-decoration:none;font-weight:700">신청하러 가기 →</a>' : '연락처 없음') + '</div>' +
             '<div class="mentor-info-meta">미디어커뮤니케이션학과</div>' +
           '</div>' +
         '</div>' +
         '<div class="card-price">' + price + '<br><span>원</span></div>' +
       '</div>' +
+      (currentUser && currentUser.id === c.user_id ? '<div style="padding:0 22px 14px"><button onclick="deleteMentoring(\''+c.id+'\', this)" style="width:100%;padding:8px;background:none;border:1.5px solid #EF4444;border-radius:8px;color:#EF4444;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">🗑 내 멘토링 삭제</button></div>' : '') +
     '</div>';
   }).join('');
 }
