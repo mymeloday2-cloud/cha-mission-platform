@@ -420,14 +420,14 @@
     <div class="modal-header">
       <div class="modal-header-text">
         <h3>📝 멘토링 등록</h3>
-        <p>내가 합격한 자격증 경험을 나눠주세요. 가격은 20,000원으로 고정됩니다.</p>
+        <p>내가 합격한 자격증 경험을 나눠주세요.</p>
       </div>
       <button class="modal-close" onclick="closeRegisterModal()">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">자격증 종류 선택 <span class="required">*</span></label>
-        <div class="cert-option-wrap">
+        <div class="cert-option-wrap" id="certOptions">
           <button class="cert-option" onclick="selectCert(this)">컴활 1급</button>
           <button class="cert-option" onclick="selectCert(this)">컴활 2급</button>
           <button class="cert-option" onclick="selectCert(this)">SNS마케팅전문가</button>
@@ -438,34 +438,39 @@
           <button class="cert-option" onclick="selectCert(this)">GTQ (그래픽기술자격)</button>
           <button class="cert-option" onclick="selectCert(this)">멀티미디어콘텐츠제작전문가</button>
         </div>
+        <div class="form-error" id="certError">자격증을 선택해 주세요.</div>
       </div>
       <div class="form-group">
         <label class="form-label">구분 <span class="required">*</span></label>
-        <select class="form-select"><option>필기 과정</option><option>실기 과정</option><option>필기 + 실기 통합</option></select>
+        <select class="form-select" id="regLevel"><option>필기 과정</option><option>실기 과정</option><option>필기 + 실기 통합</option></select>
       </div>
       <div class="form-group">
         <label class="form-label">멘토링 제목 <span class="required">*</span></label>
-        <input class="form-input" type="text" placeholder="예: 컴활 1급 실기 2주 완성 — 기출만 파는 집중 코스">
+        <input class="form-input" type="text" id="regTitle" placeholder="예: 컴활 1급 실기 2주 완성 — 기출만 파는 집중 코스">
+        <div class="form-error" id="titleError">멘토링 제목을 입력해 주세요.</div>
       </div>
       <div class="form-group">
         <label class="form-label">소개글</label>
-        <input class="form-input" type="text" placeholder="합격 경험과 멘토링 방식을 간단히 설명해 주세요">
+        <input class="form-input" type="text" id="regDesc" placeholder="합격 경험과 멘토링 방식을 간단히 설명해 주세요">
       </div>
       <div class="form-group">
         <label class="form-label">연락처 링크 <span class="required">*</span></label>
         <input class="form-input" type="url" id="contactLink" placeholder="https:// 오픈카톡, 인스타, 카카오 등 링크 입력">
-        <div class="form-hint">💡 멘티가 바로 연락할 수 있는 링크를 입력해 주세요. (오픈카톡·인스타그램·카카오톡 프로필 등)</div>
+        <div class="form-error" id="contactError">연락처 링크를 입력해 주세요.</div>
+        <div class="form-hint">💡 오픈카톡·인스타그램·카카오톡 프로필 등 멘티가 연락할 수 있는 링크를 입력해 주세요.</div>
       </div>
       <div class="form-group">
-        <label class="form-label">이용 가격</label>
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border:1.5px solid var(--blue);border-radius:10px">
-          <span style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:20px;color:var(--blue)">₩15,000~30,000</span>
-          <span style="font-size:12px;color:var(--gray-400)">멘토가 범위 내 직접 설정</span>
+        <label class="form-label">가격 설정 <span class="required">*</span></label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input class="form-input" type="number" id="regPrice" placeholder="예: 20000" min="15000" max="30000" style="flex:1">
+          <span style="font-size:13px;color:var(--gray-600);white-space:nowrap;flex-shrink:0">원</span>
         </div>
+        <div class="form-hint">💡 15,000원 ~ 30,000원 사이로 입력해 주세요.</div>
+        <div class="form-error" id="priceError">15,000~30,000원 사이로 입력해 주세요.</div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-accent w-full" style="padding:14px;font-size:15px;border-radius:10px;font-family:inherit;font-weight:800" onclick="submitRegister()">멘토링 등록하기 →</button>
+      <button class="btn btn-accent w-full" style="padding:14px;font-size:15px;border-radius:10px;font-family:inherit;font-weight:800" id="submitRegBtn" onclick="submitRegister()">멘토링 등록하기 →</button>
       <div style="text-align:center;font-size:12px;color:var(--gray-400);margin-top:10px">Gmail 인증이 완료된 계정만 등록할 수 있습니다.</div>
     </div>
   </div>
@@ -625,7 +630,51 @@ function selectCert(btn) {
   document.querySelectorAll('.cert-option').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
 }
-function submitRegister() { closeRegisterModal(); showToast('🎉 멘토링이 등록됐습니다!', 'success'); }
+async function submitRegister() {
+  const selectedCert = document.querySelector('.cert-option.selected');
+  const title = document.getElementById('regTitle').value.trim();
+  const contact = document.getElementById('contactLink').value.trim();
+  const price = parseInt(document.getElementById('regPrice').value);
+
+  // 유효성 검사
+  let valid = true;
+  document.getElementById('certError').classList.remove('show');
+  document.getElementById('titleError').classList.remove('show');
+  document.getElementById('contactError').classList.remove('show');
+  document.getElementById('priceError').classList.remove('show');
+
+  if (!selectedCert) { document.getElementById('certError').classList.add('show'); valid = false; }
+  if (!title) { document.getElementById('titleError').classList.add('show'); valid = false; }
+  if (!contact || !contact.startsWith('http')) { document.getElementById('contactError').classList.add('show'); valid = false; }
+  if (!price || price < 15000 || price > 30000) { document.getElementById('priceError').classList.add('show'); valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('submitRegBtn');
+  btn.classList.add('btn-loading');
+  btn.textContent = '등록 중...';
+
+  try {
+    const { error } = await _supabase.from('mentorings').insert({
+      user_id: currentUser.id,
+      cert: selectedCert.textContent,
+      level: document.getElementById('regLevel').value,
+      title: title,
+      desc: document.getElementById('regDesc').value.trim(),
+      contact_link: contact,
+      price_min: price,
+      price_max: price,
+    });
+    if (error) throw error;
+    closeRegisterModal();
+    showToast('🎉 멘토링이 등록됐습니다!', 'success');
+    loadMentorings();
+  } catch (err) {
+    showToast('❌ 등록 실패: ' + (err.message || '다시 시도해 주세요.'), 'error');
+  } finally {
+    btn.classList.remove('btn-loading');
+    btn.textContent = '멘토링 등록하기 →';
+  }
+}
 
 const CARDS = [
   { cert:'컴활', certLabel:'컴활 1급', levelTag:'실기', title:'컴활 1급 실기 단기 합격 멘토링', desc:'엑셀·액세스 함수부터 VBA까지, 기출 중심으로 2주 안에 실기 완파.', tags:['엑셀','액세스','기출분석'], avatarClass:'avatar-blue', avatarText:'김', name:'김지원', meta:'미디어커뮤니케이션 3학년' },
